@@ -1,0 +1,67 @@
+set verbose on
+nulldata 3599
+setobs 7 2015-01-02 --time-series
+include yahoo_get.gfn
+
+# On télécharge les cours (données manquantes interpolées)
+
+CW8 = yahoo_price("CW8.PA", 2)
+PAEJ = yahoo_price("PAEJ.PA", 2)
+PMEH = yahoo_price("PMEH.PA", 2)
+
+# store "C:\Users\lucas\OneDrive\Desktop\Séries temporelles\Dossier" --gzipped=1
+
+#EXERCICE 1
+
+series i_CW8=100*CW8/CW8[2015-01-02]
+series i_PAEJ=100*PAEJ/PAEJ[2015-01-02]
+series i_PMEH=100*PMEH/PMEH[2015-01-02]
+
+#EXERCICE 2
+
+series pc_CW8=100*log(CW8/CW8(-1))
+series pc_PAEJ=100*log(PAEJ/PAEJ(-1))
+series pc_PMEH=100*log(PMEH/PMEH(-1))
+
+gnuplot i_CW8 i_PAEJ i_PMEH --time-series --with-lines --output=display
+summary pc_CW8 pc_PAEJ pc_PMEH
+corr pc_CW8 pc_PAEJ pc_PMEH --uniform
+corrgm pc_CW8 30 --plot=display
+corrgm pc_PAEJ 30 --plot=display
+corrgm pc_PMEH 30 --plot=display
+
+#EXERCICE 3 
+
+#MODELE 1 
+garch 1 1 ; pc_CW8 --robust
+series GARCH_CW8 = $h
+GARCH_CW8=sqrt(GARCH_CW8)
+
+#MODELE 2
+garch 1 1 ; pc_PAEJ --robust
+series GARCH_PAEJ = $h
+GARCH_PAEJ=sqrt(GARCH_PAEJ)
+
+#MODELE 3 
+garch 1 1 ; pc_PMEH --robust
+series GARCH_PMEH = $h
+GARCH_PMEH=sqrt(GARCH_PMEH)
+
+square GARCH_CW8 GARCH_PAEJ GARCH_PMEH
+
+scatters  GARCH_CW8 GARCH_PAEJ GARCH_PMEH --with-lines --output=display
+scatters  sq_GARCH_CW8 sq_GARCH_PAEJ sq_GARCH_PMEH --with-lines --output=display
+
+#EXERCICE 4 
+
+list a = pc_PAEJ pc_CW8
+list b = pc_PMEH pc_CW8
+include BEKK.gfn
+BEKK_a = GUI_BEKK(a, null, 1, 1, 3, 1, 10)
+BEKK_b = GUI_BEKK(b, null, 1, 1, 3, 1, 10)
+
+
+#EXERCICE 5 
+
+var 15 pc_CW8 pc_PAEJ pc_PMEH --lagselect
+var 1 pc_CW8 pc_PAEJ pc_PMEH --robust
